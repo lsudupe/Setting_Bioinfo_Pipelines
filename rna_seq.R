@@ -22,27 +22,27 @@ genes <- rownames(tbl)
 writeLines(genes, "./data/GSE198256/genes_names.txt")
 
 # read biomart export
-annotgene <- read.table("./data/GSE198256/mart_export.txt",sep = "\t", header = TRUE)
-rownames(annotgene) <- biomart$NCBI.gene..formerly.Entrezgene..ID # some are repited that could be associated to different isophorms
+annotgene <- read.table("./data/GSE198256/mart_export_david.txt",sep = "\t", header = TRUE)
+rownames(annotgene) <- annotgene$Entrezgene # some are repited that could be associated to different isophorms
 
 # How many genes do I get annotated?
-sum(rownames(GSE198256_count) %in% annotgene$NCBI.gene..formerly.Entrezgene..ID)
+sum(rownames(GSE198256_count) %in% annotgene$Entrezgene)
 
 # Filter the information
 annotgene <- annotgene[annotgene$Chromosome %in% c(as.character(1:22) ,"X","Y"),]
-sum(rownames(GSE198256_count) %in% annotgene$NCBI.gene..formerly.Entrezgene..ID)
+sum(rownames(GSE198256_count) %in% annotgene$Entrezgene)
 
 ## Annotation... solving some issues...
-rownames(annotgene) <- annotgene$NCBI.gene..formerly.Entrezgene..ID
-annotgene[annotgene$NCBI.gene..formerly.Entrezgene..ID=="132989",]
+rownames(annotgene) <- annotgene$Entrezgene
+annotgene[annotgene$Entrezgene=="132989",]
 
-annotgene_filt <- annotgene[!duplicated(annotgene$NCBI.gene..formerly.Entrezgene..ID),]
-sum(rownames(GSE198256_count) %in% annotgene$NCBI.gene..formerly.Entrezgene..ID)
-sum(annotgene_filt$NCBI.gene..formerly.Entrezgene..ID %in% rownames(GSE198256_count))
-annotgene_filt[annotgene_filt$NCBI.gene..formerly.Entrezgene..ID=="132989",]
+annotgene_filt <- annotgene[!duplicated(annotgene$Entrezgene),]
+sum(rownames(GSE198256_count) %in% annotgene$Entrezgene)
+sum(annotgene_filt$Entrezgene %in% rownames(GSE198256_count))
+annotgene_filt[annotgene_filt$Entrezgene=="132989",]
 
 ## Overlap between annotation and gnes
-rownames(annotgene_filt) <- as.character(annotgene_filt$NCBI.gene..formerly.Entrezgene..ID)
+rownames(annotgene_filt) <- as.character(annotgene_filt$Entrezgene)
 sum(as.character(rownames(annotgene_filt)) %in% rownames(GSE198256_count))
 
 ##  Work with the annotated genes!
@@ -63,4 +63,4 @@ data_NOISEQ <- readData(data = GSE198256_count_filt,
                         biotype= annotgene_ord$type ,
                         chromosome = annotgene_ord[,c("Chromosome","start","end")],
                         factors = Factors_GSE198256)
-
+data_NOISEQ
