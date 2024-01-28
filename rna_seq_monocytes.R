@@ -87,6 +87,10 @@ GSE214282_count_filt
 annotgene_ord
 Factors_GSE214282
 
+##############
+## PART 2: QC
+##############
+
 ######NOISeq
 library(NOISeq)
 
@@ -178,4 +182,64 @@ dev.off()
 
 ## save 
 save(data_NOISEQ,GSE214282_count_filt,annotgene_ord,file="./data/GSE214282/GSE214282_step1.Rda")
+
+############
+## STEP 3: NORMALIZATION & DIFF EXPRESSION
+############
+
+myRPKM = rpkm(assayData(data_NOISEQ)$exprs, long = lengthuse, k = 0, lc = 1)
+myUQUA = uqua(assayData(data_NOISEQ)$exprs, long = lengthuse, lc = 0.5, k = 0)
+myTMM = tmm(assayData(data_NOISEQ)$exprs, long = 1000, lc = 0)
+
+############
+## STEP 3.1: DESEQ2
+############
+library(DESeq2)
+load("./data/GSE214282/GSE214282_step1.Rda")
+
+############
+# STEP 3.1.1: SET THE CLASS
+############
+
+GSE214282_DESeq2 <- DESeqDataSetFromMatrix(countData = GSE214282_count_filt,
+                                           colData = pData(data_NOISEQ),
+                                           design = ~ Group)
+# Warning
+pDataUSE <- pData(data_NOISEQ)
+pDataUSE[pDataUSE=="Control"] <- "control"
+pDataUSE[pDataUSE=="CFS"] <- "case"
+pDataUSE[,1] <- as.factor(pDataUSE[,1])
+pDataUSE$Group <- relevel(pDataUSE$Group, ref = "control")
+
+GSE214282_DESeq2 <- DESeqDataSetFromMatrix(countData = GSE214282_count_filt,
+                                           colData = pDataUSE,
+                                           design = ~ -1 + Group)
+resultsNames(GSE214282_DESeq2)
+GSE214282_DESeq2 <- DESeqDataSetFromMatrix(countData = GSE214282_count_filt,
+                                           colData = pDataUSE,
+                                           design = ~ Group)
+
+GSE214282_DESeq2
+
+############
+# STEP 3.1.2: WITH WHICH GENES TO WORK?
+############
+
+## Do we use all the genes?
+## How do we select which ones?
+
+smallestGroupSize <- 2
+keep <- rowSums(counts(GSE214282_DESeq2) >= 5) >= smallestGroupSize
+GSE214282_DESeq2_F <- GSE214282_DESeq2[keep,]
+
+
+############
+# STEP 3.1.3: DIFFERENTIAL EXPRESSION?
+############
+
+GSE214282_DESeq2_F<- DESeq(GSE214282_DESeq2_F)
+GSE214282_res <- results(GSE214282_DESeq2_F)
+GSE214282_res
+resultsNames(GSE214282_DESeq2_F)
+
 
