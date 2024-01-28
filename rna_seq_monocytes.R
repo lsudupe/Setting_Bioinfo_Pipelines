@@ -1,4 +1,5 @@
 #https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE214282
+#https://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html
 
 # libraries
 library("NOISeq") #https://rstudio-pubs-static.s3.amazonaws.com/525119_64c1fe6e1a514b89a1ef26d23bf4aae3.html
@@ -228,8 +229,8 @@ GSE214282_DESeq2
 ## Do we use all the genes?
 ## How do we select which ones?
 
-smallestGroupSize <- 2
-keep <- rowSums(counts(GSE214282_DESeq2) >= 5) >= smallestGroupSize
+smallestGroupSize <- 1
+keep <- rowSums(counts(GSE214282_DESeq2) >= 2) >= smallestGroupSize
 GSE214282_DESeq2_F <- GSE214282_DESeq2[keep,]
 
 
@@ -242,4 +243,179 @@ GSE214282_res <- results(GSE214282_DESeq2_F)
 GSE214282_res
 resultsNames(GSE214282_DESeq2_F)
 
+############
+# STEP 3.1.4: WE NEED TO UNDERSTAND MORE...
+############
 
+## Questions in my mind:
+# How do I define the question?
+# How the differential expression is done?
+# How to interpret the results?
+# Technical replicates?
+
+## STEP 3.1.4: plot MA
+
+#Interpretation?
+pdf("./results/RNAseq/GSE214282/GSE214282_MA.pdf", width = 10, height = 8)
+plotMA(GSE214282_res, ylim=c(-2,2))
+dev.off()
+
+lfcShrink(GSE214282_DESeq2_F,coef=c("Group_case_vs_control"))
+res_lfcShrink <- lfcShrink(GSE214282_DESeq2_F,coef=c("Group_case_vs_control"))
+
+pdf("./results/RNAseq/GSE214282/GSE214282_MA_lfc.pdf", width = 10, height = 8)
+plotMA(res_lfcShrink, ylim=c(-2,2))
+dev.off()
+
+GSE214282_res
+resOrdered <- GSE214282_res[order(GSE214282_res$pvalue),]
+summary(GSE214282_res)
+
+## STEP 3.1.4: Define questions
+ 
+resultsNames(GSE214282_DESeq2_F)
+
+## STEP 3.1.4: How differential expression is conducted...
+
+# DESeq2 offers two kinds of hypothesis tests: 
+#   the Wald test, 
+#        where we use the estimated standard error of a log2 fold 
+#        change to test if it is equal to zero, 
+#   the likelihood ratio test (LRT). 
+#        The LRT examines two models for the counts, a full model 
+#        with a certain number of terms and a reduced model, in 
+#        which some of the terms of the full model are removed. 
+#        The test determines if the increased likelihood of the 
+#        data using the extra terms in the full model is more 
+#        than expected if those extra terms are truly zero.
+
+resNorm <- lfcShrink(GSE214282_DESeq2_F, coef=2, type="normal")
+resAsh <- lfcShrink(GSE214282_DESeq2_F, coef=2, type="ashr")
+
+pdf("./results/RNAseq/GSE214282/GSE214282_MA_plots.pdf", width = 14, height = 5)
+par(mfrow=c(1,3), mar=c(4,4,2,1))
+xlim <- c(1,1e5); ylim <- c(-3,3)
+plotMA(res_lfcShrink, xlim=xlim, ylim=ylim, main="apeglm")
+plotMA(resNorm, xlim=xlim, ylim=ylim, main="normal")
+plotMA(resAsh, xlim=xlim, ylim=ylim, main="ashr")
+dev.off()
+
+## STEP 3.1.4: QC??
+
+# How do visualize?
+vsd <- vst(GSE214282_DESeq2_F, blind=FALSE)
+rld <- rlog(GSE214282_DESeq2_F, blind=FALSE)
+head(assay(vsd), 3)
+
+# this gives log2(n + 1)
+ntd <- normTransform(GSE214282_DESeq2_F)
+library("vsn")
+pdf("./results/RNAseq/GSE214282/GSE214282_effects_variation_transf1.pdf", width = 14, height = 5)
+meanSdPlot(assay(ntd))
+dev.off()
+
+pdf("./results/RNAseq/GSE214282/GSE214282_effects_variation_transf2.pdf", width = 14, height = 5)
+meanSdPlot(assay(vsd))
+dev.off()
+
+
+pdf("./results/RNAseq/GSE214282/GSE214282_effects_variation_transf3.pdf", width = 14, height = 5)
+meanSdPlot(assay(rld))
+dev.off()
+
+############
+# STEP 4: BIOLOGICAL INTERPRETATION
+############
+
+## heatmap
+library("pheatmap")
+select <- order(rowMeans(counts(GSE214282_DESeq2_F,normalized=TRUE)),
+                decreasing=TRUE)[1:20]
+ntd_data <- assay(ntd)[select,]
+
+df <- as.data.frame(colData(GSE214282_DESeq2_F)[,c("control","case")])
+pheatmap(assay(ntd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
+         cluster_cols=FALSE, annotation_col=df)
+df <- as.data.frame(colData(GSE214282_DESeq2_F)[, "Group", drop = FALSE])
+
+# Plot the heatmap
+pdf("./results/RNAseq/GSE214282/GSE214282_heatmap.pdf", width = 10, height = 12)
+pheatmap(ntd_data, cluster_rows=FALSE, show_rownames=TRUE,
+         cluster_cols=TRUE, annotation_col=df)
+dev.off()
+#change names genes
+gene_names <- setNames(annotgene$Gene.name, annotgene$Gene.stable.ID)
+rownames(GSE214282_res) <- gene_names[rownames(GSE214282_res)]
+head(rownames(GSE214282_res))
+
+library(EnhancedVolcano)
+pdf("./results/RNAseq/GSE214282/GSE214282_volcano.pdf", width = 10, height = 8)
+EnhancedVolcano(GSE214282_res,
+                lab = rownames(GSE214282_res),
+                x = 'log2FoldChange',
+                y = 'pvalue',
+                xlim = c(-10,10))
+dev.off()
+
+## Gene Set Enrichment Analysis.
+#    a. ORA.
+#    b. GSEA
+# How do we bring all the information together at once?
+
+BiocManager::install("topGO")
+BiocManager::install("clusterProfiler")
+BiocManager::install("pathview")
+BiocManager::install("enrichplot")
+library(clusterProfiler)
+library(enrichplot)
+library(ggplot2)
+library(org.Hs.eg.db)
+library(geneAnnotations)
+library(exprAnalysis)
+
+results_anno <- GSE214282_res
+
+## cluster profiler
+OrgDb <- org.Hs.eg.db 
+
+geneList <- as.vector(results_anno$log2FoldChange)
+names(geneList) <- rownames(results_anno)
+gene <- as.vector(rownames(results_anno))
+
+# First, convert gene symbols to Entrez IDs
+entrez_ids <- AnnotationDbi::mapIds(OrgDb,
+                                    keys = gene,
+                                    column = "ENTREZID",
+                                    keytype = "SYMBOL",
+                                    multiVals = "first")
+
+
+entrez_ids_vector <- unlist(valid_entrez_ids)
+entrez_ids_vector <- as.character(entrez_ids_vector)
+head(entrez_ids_vector)
+
+# Group GO
+ggo <- clusterProfiler::groupGO(gene     = entrez_ids_vector,
+                                OrgDb    = OrgDb,
+                                ont      = "BP",
+                                level    = 3,
+                                readable = TRUE)
+head(summary(ggo)[,-5])
+
+pdf("./results/RNAseq/GSE214282/GSE214282_clusterprofiler_barplot.pdf", width = 10, height = 8)
+barplot(ego, showCategory=25)
+dev.off()
+
+# GO over-representation test
+ego <- clusterProfiler::enrichGO(gene          = entrez_ids_vector,
+                                 OrgDb         = OrgDb,
+                                 ont           = "BP",
+                                 pAdjustMethod = "BH",
+                                 pvalueCutoff  = 0.03,
+                                 qvalueCutoff  = 0.03, 
+                                 readable      = TRUE)
+head(summary(ego)[,-8])
+
+pdf("./results/RNAseq/GSE214282/GSE214282_clusterprofiler_ego.pdf", width = 8, height = 10)
+barplot(ego, showCategory=25)
+dev.off()
