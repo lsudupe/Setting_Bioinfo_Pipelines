@@ -166,11 +166,12 @@ GSE198256_DESeq2 <- DESeqDataSetFromMatrix(countData = GSE198256_count_filt,
                                            colData = pData(data_NOISEQ),
                                            design = ~ Group)
 # Warning
+# Warning
 pDataUSE <- pData(data_NOISEQ)
-pDataUSE[pDataUSE=="Control"] <- "control"
-pDataUSE[pDataUSE=="CFS"] <- "case"
+pDataUSE[pDataUSE=="Covid19: Acute infection"] <- "Covid19AI"
+pDataUSE[pDataUSE=="Covid19: Recovery 3Mo"] <- "Covid193Mo"
+pDataUSE[pDataUSE=="Covid19: Recovery 6Mo"] <- "Covid196Mo"
 pDataUSE[,1] <- as.factor(pDataUSE[,1])
-pDataUSE$Group <- relevel(pDataUSE$Group, ref = "control")
 
 GSE198256_DESeq2 <- DESeqDataSetFromMatrix(countData = GSE198256_count_filt,
                                            colData = pDataUSE,
@@ -189,8 +190,8 @@ GSE198256_DESeq2
 ## Do we use all the genes?
 ## How do we select which ones?
 
-smallestGroupSize <- 1
-keep <- rowSums(counts(GSE198256_DESeq2) >= 2) >= smallestGroupSize
+smallestGroupSize <- 6
+keep <- rowSums(counts(GSE198256_DESeq2) >= 10) >= smallestGroupSize
 GSE198256_DESeq2_F <- GSE198256_DESeq2[keep,]
 
 
@@ -220,20 +221,35 @@ pdf("./results/RNAseq/GSE198256/GSE198256_MA.pdf", width = 10, height = 8)
 plotMA(GSE198256_res, ylim=c(-2,2))
 dev.off()
 
-lfcShrink(GSE198256_DESeq2_F,coef=c("Group_case_vs_control"))
-res_lfcShrink <- lfcShrink(GSE198256_DESeq2_F,coef=c("Group_case_vs_control"))
+#lfcShrink(GSE198256_DESeq2_F,coef=c("Group_case_vs_control"))
+#res_lfcShrink <- lfcShrink(GSE198256_DESeq2_F,coef=c("Group_case_vs_control"))
 
-pdf("./results/RNAseq/GSE198256/GSE198256_MA_lfc.pdf", width = 10, height = 8)
-plotMA(res_lfcShrink, ylim=c(-2,2))
-dev.off()
+#pdf("./results/RNAseq/GSE198256/GSE198256_MA_lfc.pdf", width = 10, height = 8)
+#plotMA(res_lfcShrink, ylim=c(-2,2))
+#dev.off()
 
-GSE198256_res
-resOrdered <- GSE198256_res[order(GSE198256_res$pvalue),]
-summary(GSE198256_res)
+#GSE198256_res
+#resOrdered <- GSE198256_res[order(GSE198256_res$pvalue),]
+#summary(GSE198256_res)
+
 
 ## STEP 3.1.4: Define questions
-
+GSE198256_DESeq2_F<- DESeq(GSE198256_DESeq2_F)
+#res <- results(GSE198256_DESeq2_F, contrast=c('factorName','numeratorLevel','denominatorLevel'))
+res <- results(GSE198256_DESeq2_F, contrast=c("Group","Healthy","Covid19AI"))
+res
 resultsNames(GSE198256_DESeq2_F)
+
+GSE198256_DESeq2_F <- DESeq(GSE198256_DESeq2_F, test="LRT", reduced=~1)
+GSE198256_DESeq2_res_LRT <- results(GSE198256_DESeq2_F)
+GSE198256_DESeq2_res_LRT
+res <- results(GSE198256_DESeq2_res_LRT)
+
+# Technical replicates?
+
+# How to interpret the results?
+
+plotCounts(GSE198256_DESeq2_F, gene="100287102", intgroup="Group")
 
 ## STEP 3.1.4: How differential expression is conducted...
 
@@ -293,18 +309,17 @@ select <- order(rowMeans(counts(GSE198256_DESeq2_F,normalized=TRUE)),
                 decreasing=TRUE)[1:20]
 ntd_data <- assay(ntd)[select,]
 
-df <- as.data.frame(colData(GSE198256_DESeq2_F)[,c("control","case")])
-pheatmap(assay(ntd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
-         cluster_cols=FALSE, annotation_col=df)
 df <- as.data.frame(colData(GSE198256_DESeq2_F)[, "Group", drop = FALSE])
-
-# Plot the heatmap
 pdf("./results/RNAseq/GSE198256/GSE198256_heatmap.pdf", width = 10, height = 12)
-pheatmap(ntd_data, cluster_rows=FALSE, show_rownames=TRUE,
-         cluster_cols=TRUE, annotation_col=df)
+print(pheatmap(assay(ntd)[select,], 
+         cluster_rows=FALSE, 
+         show_rownames=TRUE,
+         cluster_cols=TRUE, 
+         annotation_col=df))
 dev.off()
+
 #change names genes
-gene_names <- setNames(annotgene$Gene.name, annotgene$Gene.stable.ID)
+gene_names <- setNames(annotgene$Entrezgene, annotgene$Entrezgene)
 rownames(GSE198256_res) <- gene_names[rownames(GSE198256_res)]
 head(rownames(GSE198256_res))
 
@@ -338,24 +353,24 @@ results_anno <- GSE198256_res
 ## cluster profiler
 OrgDb <- org.Hs.eg.db 
 
-geneList <- as.vector(results_anno$log2FoldChange)
-names(geneList) <- rownames(results_anno)
-gene <- as.vector(rownames(results_anno))
+#geneList <- as.vector(results_anno$log2FoldChange)
+#names(geneList) <- rownames(results_anno)
+#gene <- as.vector(rownames(results_anno))
 
 # First, convert gene symbols to Entrez IDs
-entrez_ids <- AnnotationDbi::mapIds(OrgDb,
-                                    keys = gene,
-                                    column = "ENTREZID",
-                                    keytype = "SYMBOL",
-                                    multiVals = "first")
+#entrez_ids <- AnnotationDbi::mapIds(OrgDb,
+#                                    keys = gene,
+#                                    column = "ENTREZID",
+#                                    keytype = "SYMBOL",
+#                                    multiVals = "first")
 
 
-entrez_ids_vector <- unlist(valid_entrez_ids)
-entrez_ids_vector <- as.character(entrez_ids_vector)
-head(entrez_ids_vector)
+#entrez_ids_vector <- unlist(valid_entrez_ids)
+#entrez_ids_vector <- as.character(entrez_ids_vector)
+#head(entrez_ids_vector)
 
 # Group GO
-ggo <- clusterProfiler::groupGO(gene     = entrez_ids_vector,
+ggo <- clusterProfiler::groupGO(gene     = gene,
                                 OrgDb    = OrgDb,
                                 ont      = "BP",
                                 level    = 3,
@@ -367,7 +382,7 @@ barplot(ego, showCategory=25)
 dev.off()
 
 # GO over-representation test
-ego <- clusterProfiler::enrichGO(gene          = entrez_ids_vector,
+ego <- clusterProfiler::enrichGO(gene          = gene,
                                  OrgDb         = OrgDb,
                                  ont           = "BP",
                                  pAdjustMethod = "BH",
