@@ -401,13 +401,15 @@ most_negative_nes_plot <- enrichplot::gseaplot(
 most_negative_nes_plot
 
 
-
-# Step 6: EXERCISE: alternatives to KEGG?
-
-# Step 7: EXERCISE: compare GSEA vs ORA?
-
-
 ```
+
+
+
+ Step 7: EXERCISE: compare GSEA vs ORA?
+
+Both methods have different inputs, methodology, sensitivity and statistical power:
+
+
 
 ## Lets conduct GeneSetCluster.
 
