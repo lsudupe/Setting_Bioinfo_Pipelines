@@ -246,7 +246,7 @@ gene_key_df <- data.frame(
   # from the data frame
   dplyr::filter(!is.na(ensembl_id))
 
-
+head(gene_key_df)
 ```
 
 ## Lets conduct ORA.
@@ -301,11 +301,29 @@ enrich_plot
 upset_plot <- enrichplot::upsetplot(kegg_ora_results)
 upset_plot
 
+```
+
+## ACTIVITY 3: alternatives to KEGG?
+
+There are several other databases and gene set collection that we could use. For example:
+  - Reactome: A curated database of pathways and reactions in human biology.
+  - Gene Ontology (GO): A major bioinformatics initiative to unify the representation of gene and gene product attributes across all species.
+  
+  
+
+```{r}
 # Step 6: EXERCISE: alternatives to KEGG?
 
 # note: see mor examples: https://alexslemonade.github.io/refinebio-examples/03-rnaseq/pathway-analysis_rnaseq_01_ora.html#46_Over-representation_Analysis_(ORA) 
 
+# in this case you are filtering reactome pathways
+# Filter for Reactome pathways
+#hs_reactome_df <- hs_msigdb_df %>%
+#  filter(gs_subcat == "CP:REACTOME")
+
 ```
+
+
 
 ## Lets conduct GSEA.
 
