@@ -407,7 +407,26 @@ most_negative_nes_plot
 
  Step 7: EXERCISE: compare GSEA vs ORA?
 
-Both methods have different inputs, methodology, sensitivity and statistical power:
+Both methods have different inputs, methodology, sensitivity and statistical power. GSEA and ORA are both used for pathway analysis, but they differ significantly in approach. ORA requires a predefined list of genes of interest (e.g., differentially expressed genes) and assesses if these genes are overrepresented in specific pathways compared to a background set. In contrast, GSEA uses ranked gene lists based on their expression correlation with a phenotype and determines if genes in a particular pathway are enriched at the top or bottom of this ranked list. While ORA is binary (a gene is either in the list or not), GSEA considers the entire expression profile, making it more sensitive to subtle but consistent changes across a gene set. The choice between GSEA and ORA depends on the research questions and data; using both can provide complementary insights into biological mechanisms.
+
+We can compare by looking for overlaps in the pathways we identified. In this case we have one
+
+```{r}
+
+# Extract significant pathways from GSEA and ORA results
+significant_gsea_pathways <- gsea_results[gsea_results$p.adjust < 0.05, "ID"]
+significant_ora_pathways <- kegg_ora_results[kegg_ora_results$p.adjust < 0.05, "ID"]
+
+# Find overlaps
+overlapping_pathways <- intersect(significant_gsea_pathways, significant_ora_pathways)
+
+# View overlapping pathways
+print(overlapping_pathways)
+
+# Count of overlapping pathways
+length(overlapping_pathways)
+
+```
 
 
 
