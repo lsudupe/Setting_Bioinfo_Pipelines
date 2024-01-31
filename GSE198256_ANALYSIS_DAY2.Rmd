@@ -598,3 +598,93 @@ plotuniquebreakup2
 
 ```
 
+
+```{r explore results}
+
+# plot results for both all pathways and unique pathways
+plotnounique <- PlotGeneSets(GSEA.Object3, 
+                             uniquePathways = FALSE, 
+                             wordcloud = FALSE, # wordcloud only supported for GO terms
+                             doORA = T) # do ora per cluster
+
+plotunique <- PlotGeneSets(GSEA.Object3, 
+                           uniquePathways = TRUE, 
+                           wordcloud = FALSE, # wordcloud only supported for GO terms
+                           doORA = T) # do ora per cluster
+
+
+# let's say we are interested in exploring cluster 2 in plotunique. Lets break up this cluste for further analysis 
+
+plotoptimalcluster2 <- OptimalGeneSets(Object = GSEA.Object3, 
+                uniquePathway = TRUE, # consider all the pathways (also repeated) or the unique pathways
+                cluster = 2, # which cluster
+                method = "silhouette", max_cluster= 24, cluster_method = "kmeans", main= "Kmeans for 24 clusters in cluster 1")
+
+plotoptimalcluster2 # optimal 2 break up cluster 2 in 2 clusters
+
+GSEA.Object3breakup <- BreakUpCluster(GSEA.Object3, 
+                                      breakup.cluster = 2, # which cluster
+                                      sub.cluster = 2, # in how many cluster split up
+                                      uniquePathways = TRUE) # conside unique pathways
+
+plotuniquebreakup <- PlotGeneSets(GSEA.Object3breakup, 
+                                  uniquePathways = TRUE, 
+                                  wordcloud = FALSE, # wordcloud only supported for GO terms
+                                  doORA = T) # do ora per cluster
+
+plotuniquebreakup
+
+# Now break up the cluster 1 
+plotoptimalcluster1 <- OptimalGeneSets(Object = GSEA.Object3, 
+                uniquePathway = TRUE, # consider all the pathways (also repeated) or the unique pathways
+                cluster = 1, # which cluster
+                method = "silhouette", max_cluster= 24, cluster_method = "kmeans", main= "Kmeans for 24 clusters in cluster 1")
+
+plotoptimalcluster1 # optimal 1 break up cluster 1 in 9 clusters
+
+GSEA.Object3breakup2 <- BreakUpCluster(GSEA.Object3breakup, 
+                                      breakup.cluster = 1, # which cluster
+                                      sub.cluster = 9, # in how many cluster split up
+                                      uniquePathways = TRUE) # conside unique pathways
+
+plotuniquebreakup2 <- PlotGeneSets(GSEA.Object3breakup2, 
+                                   uniquePathways = TRUE, 
+                                   wordcloud = FALSE, # wordcloud only supported for GO terms
+                                   doORA = T) # do ora per cluster
+
+plotuniquebreakup2
+
+
+```
+
+
+
+
+```{r breakup cluster number 1}
+
+# let's say we are interested in exploring cluster 2 in plotunique. Lets break up this cluste for further analysis 
+
+plotoptimalcluster2 <- OptimalGeneSets(Object = GSEA.Object3, 
+                uniquePathway = TRUE, # consider all the pathways (also repeated) or the unique pathways
+                cluster = 2, # which cluster
+                method = "silhouette", max_cluster= 24, cluster_method = "kmeans", main= "Kmeans for 24 clusters in cluster 1")
+
+plotoptimalcluster2 # optimal 2 break up cluster 2 in 2 clusters
+
+GSEA.Object3breakup <- BreakUpCluster(GSEA.Object3, 
+                                      breakup.cluster = 2, # which cluster
+                                      sub.cluster = 2, # in how many cluster split up
+                                      uniquePathways = TRUE) # conside unique pathways
+
+plotuniquebreakup <- PlotGeneSets(GSEA.Object3breakup, 
+                                  uniquePathways = TRUE, 
+                                  wordcloud = FALSE, # wordcloud only supported for GO terms
+                                  doORA = T) # do ora per cluster
+
+plotuniquebreakup
+
+```
+
+
+
+
