@@ -97,7 +97,7 @@ voom_top <-topTable(fit, coef=ncol(design))
 -   Is it required to run more than analysis?
 -   What exactly are we asking with this differential expression?
 
-```{r ACTIVITY 1}
+```{r ACTIVITY 1a}
 #compare the genes, this is top10
 plot(trend_top$logFC, voom_top$logFC)
 
@@ -109,6 +109,19 @@ voom_all <-topTable(fit, coef=ncol(design), number = nrow(dge), sort.by = "none"
 plot(trend_all$logFC, voom_all$logFC)
 #this show as the results are quite similar
 ```
+
+
+```{r ACTIVITY 1b}
+#do a correlation analysis, we can quantify the relationship between the logFC obtained with both methods
+# calculate the pearson correlation coefficient. A high correlation indicates both methods are returning similar results in terms of the direction and magnitude of gene expression changes
+
+cor(trend_all$logFC, voom_all$logFC, method = "pearson")
+# we have a value of 1, suggesting our results do not vary between both techniques
+```
+
+Correlation between both results suggest perfect linear agreement. For each gene, the log-fold change estimated by voom is exactly proportional to the log-fold change estimated by trend.
+
+
 
 ## ACTIVITY 2:
 
