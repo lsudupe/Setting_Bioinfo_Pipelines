@@ -68,13 +68,13 @@ dge <- calcNormFactors(dge)
 # If the sequencing depth is reasonably consistent across the RNA samples, then the simplest and most robust approach to differential exis to use limma-trend. This approach will usually work well if the ratio of the largest library size to the smallest is not more than about 3-fold.
 logCPM <- cpm(dge, log=TRUE, prior.count=3)
  # The prior count is used here to damp down the variances of logarithms of low counts.
-fit <- lmFit(logCPM, design)
+fit_t <- lmFit(logCPM, design)
 
-fit <- eBayes(fit, trend=TRUE)
+fit_t <- eBayes(fit_t, trend=TRUE)
  # logical, should an intensity-dependent trend be allowed for the prior variance? If FALSE then the prior variance is constant. Alternatively, trend can be a row-wise numeric vector, which will be used as the covariate for the prior variance.
  # The use of eBayes or treat with trend=TRUE is known as the limma-trend method (Law et al, 2014; Phipson et al, 2016). With this option, an intensity-dependent trend is fitted to the prior variances s2.prior
 
-trend_top <- topTable(fit, coef=ncol(design))
+trend_top <- topTable(fit_t, coef=ncol(design))
 
 
 ## Voom
@@ -82,9 +82,9 @@ trend_top <- topTable(fit, coef=ncol(design))
 # When the library sizes are quite variable between samples, then the voom approach is theoretically more powerful than limma-trend.
 v <- voom(dge, design, plot=TRUE)
 # The voom method is similar in purpose to the limma-trend method, which uses eBayes or treat with trend=TRUE. The voom method incorporates the mean-variance trend into the precision weights, whereas limma-trend incorporates the trend into the empirical Bayes moderation. The voom method takes into account the sequencing depths (library sizes) of the individual columns of counts and applies the mean-variance trend on an individual observation basis. limma-trend, on the other hand, assumes that the library sizes are not wildly different and applies the mean-variance trend on a genewise basis. As noted by Law et al (2014), voom should be more powerful than limma-trend if the library sizes are very different but, otherwise, the two methods should give similar results.
-fit <- lmFit(v, design)
-fit <- eBayes(fit)
-voom_top <-topTable(fit, coef=ncol(design))
+fit_v <- lmFit(v, design)
+fit_v <- eBayes(fit)
+voom_top <-topTable(fit_v, coef=ncol(design))
 
 
 
@@ -102,8 +102,8 @@ voom_top <-topTable(fit, coef=ncol(design))
 plot(trend_top$logFC, voom_top$logFC)
 
 #but we want to compare all the genes
-trend_all <- topTable(fit, coef=ncol(design), number = nrow(dge), sort.by = "none")
-voom_all <-topTable(fit, coef=ncol(design), number = nrow(dge), sort.by = "none")
+trend_all <- topTable(fit_t, coef=ncol(design), number = nrow(dge), sort.by = "none")
+voom_all <-topTable(fit_v, coef=ncol(design), number = nrow(dge), sort.by = "none")
 
 #sum(rownames(trend_all))==sum(rownames(voom_all))
 plot(trend_all$logFC, voom_all$logFC)
@@ -119,7 +119,7 @@ cor(trend_all$logFC, voom_all$logFC, method = "pearson")
 # we have a value of 1, suggesting our results do not vary between both techniques
 ```
 
-Correlation between both results suggest perfect linear agreement. For each gene, the log-fold change estimated by voom is exactly proportional to the log-fold change estimated by trend.
+Correlation between both results suggest very similar linear agreement. For each gene, the log-fold change estimated by voom is quite proportional to the log-fold change estimated by trend.
 
 
 
