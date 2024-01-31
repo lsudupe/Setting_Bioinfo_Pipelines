@@ -127,6 +127,42 @@ Correlation between both results suggest perfect linear agreement. For each gene
 
 -   Plan the next analysis: questions, steps,...
 
+Here's a plan for the next steps
+
+1. Differential Expression:
+  - Which genes are differentially expressed between "Covid19AI" and "Healthy"?
+  - How do the expression profiles of "Covid196Mo" differ from "Healthy"?
+  - Are there any genes that are commonly or uniquely affected in "Covid19AI" and "Covid196Mo" compared to "Healthy"?
+
+2. Biological Significance:
+  - What biological pathways are affected by the differential expression observed in "Covid19AI" and "Covid196Mo"?
+  - Are there any potential biomarkers or therapeutic targets for Covid-19 that can be identified?
+  
+Steps to take into consideration, in our case, for this BESE course we will focus until data visualization. Because it is not the aim for this course to develop further:
+
+1. Statistical Analysis:
+- Use the 'limma' package to identify differentially expressed genes using the contrast matrix you've set up.
+- Extract the top tables for each contrast to identify the most significantly differentially expressed genes.
+
+2. Pathway Analysis:
+- Use 'clusterProfiler' to perform enrichment analysis of the differentially expressed genes to identify affected biological pathways.
+- Use 'org.Hs.eg.db' to map genes to pathways and perform Gene Set Enrichment Analysis (GSEA).
+
+3. Data Visualization:
+- Visualize the differentially expressed genes and the results of the pathway analysis.
+- Create volcano plots, heatmaps, or plots to display the relationships between different conditions and the genes involved.
+
+4. Results Interpretation:
+- Interpret the results in the context of Covid-19 biology
+
+5. Validation:
+- Validate some of the key findings experimentally, or cross-referencing with available datasets.
+
+6. Reporting:
+- Document all the steps, including the R code, analysis parameters, and decisions
+- Prepare a report or a scientific manuscript describing the methods, findings, and their biological relevance.
+
+
 ```{r ACTIVITY 2}
 
 # PACKAGES
@@ -151,8 +187,10 @@ fit <- lmFit(v, design)
 contrast.matrix <- makeContrasts(Covid19AI-Healthy, Healthy, 
                                  Covid196Mo-Healthy,    
                                  levels=design)
+
 fit2 <- contrasts.fit(fit, contrast.matrix)
 fit2 <- eBayes(fit2)
+
 topTable(fit2) 
 topTable(fit2,coef=1) #show me the first question results
 topTable(fit2,coef=2) #compare me all the groups and tell me 
@@ -164,11 +202,13 @@ topTable(fit2,coef=3)
 
 # Store all of them
 
+# Storing top tables in variables
+topTable_all <- topTable(fit2)
+topTable_q1 <- topTable(fit2, coef=1) # Results for the first contrast
+topTable_q2 <- topTable(fit2, coef=2) # Results for the second contrast
+topTable_q3 <- topTable(fit2, coef=3) # Results for the third contrast
 
-# 
-
-
-
+#
 ```
 
 ## ORA and Gene Set Enrichment analysis.
