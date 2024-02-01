@@ -371,6 +371,12 @@ most_negative_nes_plot
 ```
 
 
+- KEGG Cardiac Muscle Contraction: This pathway appears to be the most positively enriched in the 'Acute' condition, as indicated by a higher Normalized Enrichment Score (NES). This suggests that genes involved in cardiac muscle contraction are more actively expressed in the 'Acute' condition compared to the 'Healthy' group. Such an enrichment could imply a stress response or increased cardiac activity associated with the acute phase of the condition.
+
+- KEGG NOD-like Receptor Signaling Pathway: Conversely, this pathway shows a more negative enrichment, meaning it has a lower NES and indicates that genes associated with the NOD-like receptor signaling are less actively expressed in the 'Acute' condition compared to the 'Healthy' group. This might reflect a suppressed immune response related to this particular pathway in the acute phase.
+
+These results would suggest a potential shift in the physiological state between acute and healthy conditions, with implications for cardiac function and immune response. 
+
 
 ## Conclusion
 
