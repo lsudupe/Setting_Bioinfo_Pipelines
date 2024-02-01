@@ -16,6 +16,12 @@ knitr::opts_chunk$set(echo = TRUE)
 library("NOISeq") #https://rstudio-pubs-static.s3.amazonaws.com/525119_64c1fe6e1a514b89a1ef26d23bf4aae3.html
 library("tidyverse")
 library("GEOquery")
+library("limma")
+library("edgeR")
+library("clusterProfiler")
+library("msigdbr")
+library("org.Hs.eg.db")
+library("magrittr")
 ```
 
 ## Introduction
@@ -164,10 +170,71 @@ For the differential expression (DE) analysis, considering the plots provided fo
 
 The focus of our analysis will be on comparing the 'Acute infection' stage with the 'Healthy' control group. This comparison is because the PCA plot indicates a distinct clustering of the acute infection samples, suggesting a strong differential expression signal when compared to the healthy samples. This specific comparison can provide valuable insights into the immune response and molecular changes associated with the acute phase of COVID-19.
 
+```{r Normalize and set design}
+
+# set DGE class
+dge <- DGEList(counts=GSE198256_count_filt)
+
+# Make sure on the metadata
+rownames(Meta_GSE198256)==colnames(GSE198256_count_filt)
+Group[Group=="Covid19: Acute infection"] <- "Covid19AI"
+Group[Group=="Covid19: Recovery 3Mo"] <- "Covid193Mo"
+Group[Group=="Covid19: Recovery 6Mo"] <- "Covid196Mo"
+design <- model.matrix(~ Group )
+
+# Filter
+keep <- filterByExpr(dge, design=design)
+dge <- dge[keep,,keep.lib.sizes=FALSE]
+
+# Normalization
+dge <- calcNormFactors(dge)
+
+```
+
+
+
 
 ```{r DE}
 
+## Voom
+v <- voom(dge, design, plot=TRUE)
+fit_v <- lmFit(v, design)
+fit_v <- eBayes(fit_v)
+voom_top <-topTable(fit_v, coef=ncol(design))
+
 ```
+
+The plot illustrates the mean-variance trend in the dataset. The trend line (in red) shows how the variability of gene expression (y-axis: square root of standard deviation) changes with the average expression level (x-axis: log2(count size + 0.5)). Voom assumes that the variance of log-counts is related to the mean in a specific way: as gene expression increases, the variance tends to decrease. This plot confirms that assumption, showing that highly expressed genes tend to have less variability. The spread of points around the trend line represents individual gene variances and their deviation from the expected trend, important for weighting in subsequent differential expression analysis.
+
+
+```{r Contrast}
+
+#now I am adding the questions, coeficient are associated now
+#to the contrast matrix, no to the design matrix
+colnames(design)
+contrast.matrix <- makeContrasts(GroupCovid19AI-GroupHealthy, 
+                                 GroupCovid196Mo-GroupHealthy,    
+                                 levels=design)
+
+fit <- contrasts.fit(fit_v, contrast.matrix)
+fit <- eBayes(fit)
+
+topTable(fit) 
+topTable(fit,coef=1) #show me the first question results
+topTable(fit,coef=2) #compare me all the groups and tell me 
+#if there is a difference between all the groups, the F value is
+#because of that
+
+# Store all of them
+topTable_all <- topTable(fit)
+topTable_q1 <- topTable(fit, coef=1) # Results for the first contrast
+topTable_q2 <- topTable(fit, coef=2) # Results for the second contrast
+
+```
+
+
+
+
 
 ## Visualization: Volcano Plot and Heatmap
 
