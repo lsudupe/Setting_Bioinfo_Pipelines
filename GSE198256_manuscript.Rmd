@@ -301,6 +301,7 @@ In the volcano plot, each point represents a gene. The x-axis shows the log2 fol
 
 The heatmap, shows  the expression patterns of the top 30 differentially expressed genes across different samples grouped by their condition (Acute infection, Recovery 3Mo, Recovery 6Mo, Healthy). The color scale indicates the expression level, with red showing higher expression and blue indicating lower expression.
 
+The volcano plot and heatmap provide a visual representation of gene expression differences between 'Covid19: Acute infection' and 'Healthy' groups. The volcano plot shows several genes significantly upregulated (to the right) and downregulated (to the left) in the 'Acute' condition, with genes like PID1 and S100A9 standing out. S100A9, in particular, has been associated with inflammatory responses in COVID-19 pathogenesis, suggesting its potential role as a biomarker for disease severity. The heatmap presents the top differentially expressed genes, with distinct expression patterns across conditions, offering insights into the molecular changes characterizing acute COVID-19 infection. 
 
 
 ## Gene Set Enrichment Analysis (GSEA)
@@ -380,5 +381,5 @@ These results would suggest a potential shift in the physiological state between
 
 ## Conclusion
 
-Summary of key findings and their implications.
-Reflection on the methodology and potential future research directions.
+Our analysis of the GSE198256 dataset employed a comprehensive bioinformatics pipeline to elucidate the transcriptomic distinctions between 'Covid19: Acute infection' and 'Healthy' states. Key genes and pathways, notably including inflammatory markers like S100A9, were identified, offering potential diagnostic and therapeutic insights. The applied methodology, integrating differential expression analysis, GSEA, and data visualization, gives a robust approach to understanding the molecular mechanisms of acute COVID-19. 
+
