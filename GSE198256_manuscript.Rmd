@@ -22,6 +22,9 @@ library("clusterProfiler")
 library("msigdbr")
 library("org.Hs.eg.db")
 library("magrittr")
+library("EnhancedVolcano")
+library("pheatmap")
+
 ```
 
 ## Introduction
@@ -226,14 +229,11 @@ topTable(fit,coef=2) #compare me all the groups and tell me
 #because of that
 
 # Store all of them
-topTable_all <- topTable(fit)
-topTable_q1 <- topTable(fit, coef=1) # Results for the first contrast
-topTable_q2 <- topTable(fit, coef=2) # Results for the second contrast
+topTable_all <- topTable(fit, number=50)
+topTable_q1 <- topTable(fit, coef=1, number=50) # Results for the first contrast
+topTable_q2 <- topTable(fit, coef=2, number=50) # Results for the second contrast
 
 ```
-
-
-
 
 
 ## Visualization: Volcano Plot and Heatmap
@@ -241,10 +241,65 @@ topTable_q2 <- topTable(fit, coef=2) # Results for the second contrast
 Creating and interpreting a volcano plot for DE genes.
 Generating a heatmap for acute infection and healthy comparisons.
 
+```{r annotation}
+## annotate the genes
+gene_symbols <- mapIds(org.Hs.eg.db,
+                       keys = rownames(topTable_q1), # your gene IDs
+                       column = "SYMBOL",
+                       keytype = "ENTREZID",
+                       multiVals = "first")
+
+rownames(topTable_q1) <- gene_symbols[rownames(topTable_q1)]
+
+```
+
+
 
 ```{r volcano and heatmap}
 
+## volcano
+EnhancedVolcano(topTable_q1,
+                lab = rownames(topTable_q1),
+                x = 'logFC', # This is the log2 fold change column in your topTable
+                y = 'P.Value', # This is the p-value column in your topTable
+                xlim = c(-10, 10),
+                title = "Volcano plot: Acute vs Healthy")
+
+
+## heatmap
+# Extract the group information from the 'characteristics_ch1.1' column
+Meta_GSE198256$Group <- gsub("disease state: ", "", Meta_GSE198256$characteristics_ch1.1)
+
+# Create the sample_info dataframe with the relevant group information
+sample_info <- data.frame(Group = Meta_GSE198256$Group, row.names = colnames(dge$counts))
+
+# Ensure that annotation_col has the same row names as the count data for correct matching
+annotation_col <- as.data.frame(sample_info$Group, row.names = rownames(sample_info))
+
+# Select the top 20 genes based on the absolute log-fold change from the topTable results
+topGenes <- rownames(topTable_q1[order(abs(topTable_q1$logFC), decreasing = TRUE), ][1:30, ])
+
+# Extract the normalized logCPM counts for the top genes
+normalized_logCPM <- cpm(dge, log=TRUE, prior.count=5)
+topGenes_data <- normalized_logCPM[topGenes,]
+
+# Generate the heatmap using pheatmap
+pheatmap(topGenes_data,
+         annotation_col = annotation_col,
+         show_rownames = TRUE,
+         show_colnames = TRUE,
+         fontsize_row = 6,
+         cluster_rows = TRUE,
+         cluster_cols = TRUE,
+         main = "Top 30 genes: Acute vs Healthy")
+
+
 ```
+
+In the volcano plot, each point represents a gene. The x-axis shows the log2 fold change, indicating the magnitude and direction of expression changes, while the y-axis shows the negative log10 of the p-value, indicating the statistical significance. Genes that appear toward the top of the plot are more statistically significant, while those further to the left or right have greater fold changes. The red points are likely set to highlight genes that meet certain thresholds for fold change and significance, suggesting they are of particular interest.
+
+The heatmap, shows  the expression patterns of the top 30 differentially expressed genes across different samples grouped by their condition (Acute infection, Recovery 3Mo, Recovery 6Mo, Healthy). The color scale indicates the expression level, with red showing higher expression and blue indicating lower expression.
+
 
 
 ## Gene Set Enrichment Analysis (GSEA)
@@ -253,7 +308,78 @@ Rationale for choosing GSEA over ORA (Over-Representation Analysis).
 Execution of GSEA for acute infection samples.
 Analysis and interpretation of pathway enrichment results.
 
-```{r}
+```{r GSEA}
+
+# Step 1: determine genes of interest.
+diff_table_all <- topTable(fit2,coef=1,p.value=1,number=nrow(logCPM)) 
+
+# Step 2: determine background.
+
+# Step 3: Determine gene sets.
+
+msigdbr_species()
+hs_msigdb_df <- msigdbr(species = "Homo sapiens")
+head(hs_msigdb_df)
+
+hs_kegg_df <- hs_msigdb_df %>%
+  dplyr::filter(
+    gs_cat == "C2", # This is to filter only to the C2 curated gene sets
+    gs_subcat == "CP:KEGG" # This is because we only want KEGG pathways
+  )
+
+# Step 4: conduct GSEA
+
+list_ordered <- diff_table_all[,"B"]
+names(list_ordered) <- rownames(diff_table_all)
+  
+  
+gsea_results <- GSEA(
+  geneList = list_ordered, # Ordered ranked gene list
+  minGSSize = 25, # Minimum gene set size
+  maxGSSize = 500, # Maximum gene set set
+  pvalueCutoff = 0.05, # p-value cutoff
+  eps = 0, # Boundary for calculating the p value
+  seed = 123, # Set seed to make results reproducible
+  pAdjustMethod = "BH", # Benjamini-Hochberg correction
+  TERM2GENE = dplyr::select(
+    hs_kegg_df,
+    gs_name,
+    human_entrez_gene
+  )
+)
+
+
+
+# Step 5: Visualize / explore
+
+
+head(gsea_results@result)
+
+gsea_result_df <- data.frame(gsea_results@result)
+gsea_result_df %>%
+  # This returns the 3 rows with the largest NES values
+  dplyr::slice_max(NES, n = 3)
+
+most_positive_nes_plot <- enrichplot::gseaplot(
+  gsea_results,
+  geneSetID = "KEGG_JAK_STAT_SIGNALING_PATHWAY",
+  title = "KEGG_JAK_STAT_SIGNALING_PATHWAY",
+  color.line = "#0d76ff"
+)
+most_positive_nes_plot
+
+gsea_result_df %>%
+  # Return the 3 rows with the smallest (most negative) NES values
+  dplyr::slice_min(NES, n = 3)
+
+most_negative_nes_plot <- enrichplot::gseaplot(
+  gsea_results,
+  geneSetID = "KEGG_SPLICEOSOME",
+  title = "KEGG_SPLICEOSOME",
+  color.line = "#0d76ff"
+)
+most_negative_nes_plot
+
 
 ```
 
