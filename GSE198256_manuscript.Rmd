@@ -1,0 +1,197 @@
+---
+title: "GSE198256_manuscript"
+author: "Laura Sudupe. email:laura.medinilla@kaust.eu.sa"
+date: "1/31/2024"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r libraries}
+library("NOISeq") #https://rstudio-pubs-static.s3.amazonaws.com/525119_64c1fe6e1a514b89a1ef26d23bf4aae3.html
+library("tidyverse")
+library("GEOquery")
+```
+
+## Introduction
+
+# Overview of the study, dataset origin, and purpose.
+The study "Functional reprogramming of monocytes in patients with acute and convalescent severe COVID-19" focuses on understanding the impact of COVID-19 on monocytes, a type of white blood cell crucial for immune response. Using transcriptomic and epigenomic analysis, the study investigates how monocytes are functionally reprogrammed in patients during acute and convalescent phases of severe COVID-19. The dataset GSE198256, derived from this research, offers valuable insights into the changes in monocytes induced by COVID-19.
+
+# Brief explanation of COVID-19 impact on monocytes.
+COVID-19, caused by the SARS-CoV-2 virus, has been shown to significantly affect the immune system. Monocytes, as key players in the immune response, undergo functional changes during infection. This study reveals how severe COVID-19 leads to distinctive alterations in cytokine production and gene expression in monocytes. Understanding these changes is critical for comprehending the immune dysregulation observed in severe COVID-19 cases.
+
+# Objectives of the analysis.
+The primary objectives of the analysis are:
+
+1. To conduct a comprehensive quality control of the GSE198256 dataset using Noiseq.
+2. To perform differential expression analysis, determining how gene expression in monocytes differs between acute COVID-19 patients and healthy individuals.
+3. To visualize these differences using volcano plots and heatmaps.
+4. To execute Gene Set Enrichment Analysis (GSEA) for a deeper understanding of the biological pathways affected during acute COVID-19 infection.
+
+## Data Acquisition
+
+Description of the GSE198256 dataset.
+Steps for downloading and preparing the data for analysis.
+
+```{r data}
+# Read data
+# load counts table from GEO
+urld <- "https://www.ncbi.nlm.nih.gov/geo/download/?format=file&type=rnaseq_counts"
+path <- paste(urld, "acc=GSE198256", "file=GSE198256_raw_counts_GRCh38.p13_NCBI.tsv.gz", sep="&");
+GSE198256_count <- as.matrix(data.table::fread(path, header=T, colClasses="integer"), rownames=1)
+
+# read metadata
+#meta <- read.table("./data/GSE198256/SraRunTable.txt" , sep=",", header = TRUE)
+gds <- getGEO("GSE198256")
+Meta_GSE198256 <- pData(gds$GSE198256_series_matrix.txt.gz@phenoData)
+Meta_GSE198256 <- Meta_GSE198256[,c("title","source_name_ch1","characteristics_ch1",
+                                    "characteristics_ch1.1","description","cell type:ch1","disease state:ch1")]
+
+# extract rownames
+genes <- rownames(tbl)
+#writeLines(genes, "./data/GSE198256/genes_names.txt")
+
+# read biomart export
+annotgene <- read.table("./data/GSE198256/mart_export_david.txt",sep = "\t", header = TRUE)
+#rownames(annotgene) <- annotgene$Entrezgene # some are repited that could be associated to different isophorms
+
+# How many genes do I get annotated?
+sum(rownames(GSE198256_count) %in% annotgene$Entrezgene)
+
+# Filter the information
+annotgene <- annotgene[annotgene$Chromosome %in% c(as.character(1:22) ,"X","Y"),]
+sum(rownames(GSE198256_count) %in% annotgene$Entrezgene)
+
+## Annotation... solving some issues...
+#rownames(annotgene) <- annotgene$Entrezgene
+annotgene[annotgene$Entrezgene=="132989",]
+
+annotgene_filt <- annotgene[!duplicated(annotgene$Entrezgene),]
+sum(rownames(GSE198256_count) %in% annotgene$Entrezgene)
+sum(annotgene_filt$Entrezgene %in% rownames(GSE198256_count))
+annotgene_filt[annotgene_filt$Entrezgene=="132989",]
+
+## Overlap between annotation and gnes
+rownames(annotgene_filt) <- as.character(annotgene_filt$Entrezgene)
+sum(as.character(rownames(annotgene_filt)) %in% rownames(GSE198256_count))
+
+##  Work with the annotated genes!
+GSE198256_count_filt <- GSE198256_count[rownames(GSE198256_count) %in% rownames(annotgene_filt),]
+GSE198256_count_exc <-GSE198256_count[!(rownames(GSE198256_count) %in% rownames(annotgene_filt)),]
+annotgene_ord <- annotgene_filt[rownames(GSE198256_count_filt ),]
+
+sum(rownames(annotgene_ord)==rownames(GSE198256_count_filt))
+```
+
+
+## Quality Control (QC) using Noiseq
+
+# Application of Noiseq to the dataset.
+
+QC in transcriptomic data analysis is a critical step to ensure the reliability and validity of the results. It involves assessing the quality of RNA samples, checking for contamination or degradation, and evaluating the performance of sequencing. In the context of RNA-seq data, Noiseq is a bioinformatics tool used for differential expression analysis in RNA-seq data.
+
+
+# Presentation and interpretation of QC results.
+
+
+- Counts per Million (CPM) Distribution Plot: This bar plot showa the distribution of gene expression levels across the samples from the GSE198256 dataset, categorized by different CPM thresholds. A majority of the genes have expression levels above 0 CPM, indicating that they are expressed across the samples. Genes with higher expression levels (CPM > 5 or CPM > 10) are less frequent. This plot provides a snapshot of expression activity within the samples.
+
+- Sequencing Depth vs. Detected Features Plot: This scatter plot shows the relationship between sequencing depth and the number of detected features. As the sequencing depth (million reads) increases, more features are detected, but there's a diminishing return as depth increases. 
+
+- PCA Plot: The PCA plot illustrates the variation among samples by reducing the dimensionality of the dataset to the two principal components (PCs) that explain the most variance. Here, samples are colored based on their condition: Healthy, Covid19: Acute infection, Covid19: Recovery 3Mo, and Covid19: Recovery 6Mo. The plot shows that samples from the 'Covid19: Acute infection' group cluster together, suggesting similar gene expression profiles within this group, while other conditions display more variability.
+
+
+
+```{r NOISeq}
+
+Factors_GSE198256 <- data.frame(Meta_GSE198256 [ colnames(GSE198256_count_filt),c("disease state:ch1")])
+colnames(Factors_GSE198256)[1]<- "Group"
+
+lengthuse <- abs(annotgene_ord$end-annotgene_ord$start)
+names(lengthuse) <- rownames(annotgene_ord)
+gc <- annotgene_ord$GC
+names(gc) <- rownames(annotgene_ord)
+biotype <-annotgene_ord$type
+names(biotype) <- rownames(annotgene_ord)
+
+chromosome <- annotgene_ord[,c("Chromosome","start","end")]
+
+
+data_NOISEQ <- readData(data = GSE198256_count_filt,
+                        length=lengthuse,
+                        gc=gc,
+                        biotype= biotype ,
+                        chromosome = annotgene_ord[,c("Chromosome","start","end")],
+                        factors = Factors_GSE198256)
+
+myexplodata <- dat(data_NOISEQ, type = "biodetection")
+myexplodata <- dat(data_NOISEQ, type = "biodetection")
+
+## explore our data
+mysaturation = dat(data_NOISEQ, k = 0, ndepth = 7, type = "saturation")
+explo.plot(mysaturation, toplot = 1, samples = 1:8, yleftlim = NULL, yrightlim = NULL)
+
+#sequencing depth
+explo.plot(mycountsbio, toplot = 1, samples = NULL, plottype = "barplot")
+#pca
+myPCA = dat(data_NOISEQ, type = "PCA")
+explo.plot(myPCA, factor = "Group")
+
+#for full report run this line
+#QCreport(data_NOISEQ, samples = NULL, factor = "Group", norm = FALSE)
+
+
+## save 
+save(data_NOISEQ,GSE198256_count_filt,annotgene_ord,file="./data/GSE198256/GSE198256_step1.Rda")
+```
+
+
+
+
+
+## Differential Expression (DE) Analysis
+
+
+# Selection and justification of the most appropriate method for this dataset.
+
+For the differential expression (DE) analysis, considering the plots provided for the GSE198256 dataset, the most appropriate method would be limma-voom. This decision is based on the fact that limma-voom is well-suited for datasets where the sequencing depth varies significantly between samples, as it can model the mean-variance relationship of log-counts, effectively handling both lowly and highly expressed genes. Also, this method is robust to the presence of outliers, as showed in the PCA plot, indicating variability among samples.
+
+The focus of our analysis will be on comparing the 'Acute infection' stage with the 'Healthy' control group. This comparison is because the PCA plot indicates a distinct clustering of the acute infection samples, suggesting a strong differential expression signal when compared to the healthy samples. This specific comparison can provide valuable insights into the immune response and molecular changes associated with the acute phase of COVID-19.
+
+
+```{r DE}
+
+```
+
+## Visualization: Volcano Plot and Heatmap
+
+Creating and interpreting a volcano plot for DE genes.
+Generating a heatmap for acute infection and healthy comparisons.
+
+
+```{r volcano and heatmap}
+
+```
+
+
+## Gene Set Enrichment Analysis (GSEA)
+
+Rationale for choosing GSEA over ORA (Over-Representation Analysis).
+Execution of GSEA for acute infection samples.
+Analysis and interpretation of pathway enrichment results.
+
+```{r}
+
+```
+
+
+## Conclusion
+
+Summary of key findings and their implications.
+Reflection on the methodology and potential future research directions.
