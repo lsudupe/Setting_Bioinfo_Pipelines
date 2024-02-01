@@ -24,6 +24,7 @@ library("org.Hs.eg.db")
 library("magrittr")
 library("EnhancedVolcano")
 library("pheatmap")
+library("dplyr")
 
 ```
 
@@ -310,48 +311,35 @@ Analysis and interpretation of pathway enrichment results.
 
 ```{r GSEA}
 
-# Step 1: determine genes of interest.
-diff_table_all <- topTable(fit2,coef=1,p.value=1,number=nrow(logCPM)) 
+# Determine genes of interest based on differential expression
+diff_table_all <- topTable(fit, coef=1, sort.by="p", number=Inf)
+rownames(diff_table_all) <- diff_table_all$genes  
 
-# Step 2: determine background.
+# Determine background - Not in GSEA
 
-# Step 3: Determine gene sets.
+# Determine gene sets
+msigdbr_species <- msigdbr(species = "Homo sapiens")
+hs_kegg_df <- msigdbr_species %>%
+  filter(gs_cat == "C2", gs_subcat == "CP:KEGG")
 
-msigdbr_species()
-hs_msigdb_df <- msigdbr(species = "Homo sapiens")
-head(hs_msigdb_df)
+# Convert the logFC to a ranked list (the higher the absolute logFC, the more significant the gene)
+geneList <- sort(diff_table_all$logFC, decreasing = TRUE)  
+names(geneList) <- rownames(diff_table_all)
 
-hs_kegg_df <- hs_msigdb_df %>%
-  dplyr::filter(
-    gs_cat == "C2", # This is to filter only to the C2 curated gene sets
-    gs_subcat == "CP:KEGG" # This is because we only want KEGG pathways
-  )
-
-# Step 4: conduct GSEA
-
-list_ordered <- diff_table_all[,"B"]
-names(list_ordered) <- rownames(diff_table_all)
-  
-  
+# Run GSEA
 gsea_results <- GSEA(
-  geneList = list_ordered, # Ordered ranked gene list
-  minGSSize = 25, # Minimum gene set size
-  maxGSSize = 500, # Maximum gene set set
-  pvalueCutoff = 0.05, # p-value cutoff
-  eps = 0, # Boundary for calculating the p value
-  seed = 123, # Set seed to make results reproducible
-  pAdjustMethod = "BH", # Benjamini-Hochberg correction
-  TERM2GENE = dplyr::select(
-    hs_kegg_df,
-    gs_name,
-    human_entrez_gene
-  )
+  geneList = geneList, 
+  minGSSize = 25,
+  maxGSSize = 500,
+  pvalueCutoff = 0.05,
+  pAdjustMethod = "BH",
+  TERM2GENE = hs_kegg_df[, c("gs_name", "human_entrez_gene")]
 )
 
+```
 
 
-# Step 5: Visualize / explore
-
+```{r explore results}
 
 head(gsea_results@result)
 
@@ -362,8 +350,8 @@ gsea_result_df %>%
 
 most_positive_nes_plot <- enrichplot::gseaplot(
   gsea_results,
-  geneSetID = "KEGG_JAK_STAT_SIGNALING_PATHWAY",
-  title = "KEGG_JAK_STAT_SIGNALING_PATHWAY",
+  geneSetID = "KEGG_CARDIAC_MUSCLE_CONTRACTION",
+  title = "KEGG_CARDIAC_MUSCLE_CONTRACTION",
   color.line = "#0d76ff"
 )
 most_positive_nes_plot
@@ -374,14 +362,14 @@ gsea_result_df %>%
 
 most_negative_nes_plot <- enrichplot::gseaplot(
   gsea_results,
-  geneSetID = "KEGG_SPLICEOSOME",
-  title = "KEGG_SPLICEOSOME",
+  geneSetID = "KEGG_NOD_LIKE_RECEPTOR_SIGNALING_PATHWAY",
+  title = "KEGG_NOD_LIKE_RECEPTOR_SIGNALING_PATHWAY",
   color.line = "#0d76ff"
 )
 most_negative_nes_plot
 
-
 ```
+
 
 
 ## Conclusion
