@@ -5,5 +5,8 @@
 ./RNA-seq/.DS_Store
 ./RNA-seq/RNA-seq.Rproj
 
+.DS_Store
+.gitignore
+
 
 
