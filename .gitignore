@@ -2,8 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
-.DS_Store
-.RNA-seq.Rproj
+./RNA-seq/.DS_Store
+./RNA-seq/RNA-seq.Rproj
 
 
 
