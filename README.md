@@ -57,10 +57,6 @@ The course is divided into several modules, each focusing on a different aspect 
 - Comparison report
 
 
-## Data
-
-For the RNA-seq part of the course, we will utilize the dataset with GEO accession number GSE198256. 
-
 ## Projects
 
 Both individual and group projects are included in this course to provide hands-on experience with real-world data. These projects reinforce the concepts and techniques covered in the lectures and practical sessions.
