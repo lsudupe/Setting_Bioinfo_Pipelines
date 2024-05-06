@@ -7,6 +7,7 @@ This repository provides a comprehensive suite of bioinformatics pipelines tailo
 - Single-cell sequencing
 - Multiome analysis
 - DNA methylation analysis
+- Spatial Transcriptomics
 
 Each directory within this repository is devoted to one of these data types, containing relevant scripts, workflows, and example data.
 
@@ -51,8 +52,8 @@ The course is divided into several modules, each focusing on a different aspect 
 ### Spatial Transcriptomic Analysis
 
 - Processing ST data
-- QC
-- DE
+- Quality Control
+- Differential Expression Analysis
 - Comparison report
 
 
