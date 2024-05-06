@@ -48,6 +48,14 @@ The course is divided into several modules, each focusing on a different aspect 
 - Integration with gene expression data
 - Methylation's role in gene regulation
 
+### Spatial Transcriptomic Analysis
+
+- Processing ST data
+- QC
+- DE
+- Comparison report
+
+
 ## Data
 
 For the RNA-seq part of the course, we will utilize the dataset with GEO accession number GSE198256. 
@@ -65,5 +73,6 @@ Each data type has its directory:
 - `Single-cell/`
 - `Multiome/`
 - `Methylation/`
+- `Spatial Transcriptomics/`
 
 
